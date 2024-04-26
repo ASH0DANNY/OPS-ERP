@@ -6,6 +6,7 @@ import {
   POPPINS_REGULAR,
   POPPINS_SEMIBOLD,
 } from "utilities/Base64Url";
+
 import {
   SCHOOL_ADDRESS,
   SCHOOL_CONTACT,
@@ -202,7 +203,7 @@ const AttendanceRegisterReport=()=>{
       catch (error) {
         reject(error);
       }
-      
+
     });
 
 }
