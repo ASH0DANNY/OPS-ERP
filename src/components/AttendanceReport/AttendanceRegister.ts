@@ -202,6 +202,7 @@ const AttendanceRegisterReport=()=>{
       catch (error) {
         reject(error);
       }
+      
     });
 
 }
