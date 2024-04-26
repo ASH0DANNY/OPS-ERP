@@ -39,6 +39,7 @@ import { Print } from "@mui/icons-material";
 import OverViewTab from "./viewAttendanceTabs/OverViewTab";
 import { AttendanceReportGenerator } from "components/AttendanceReport/AttendanceReportGenerator";
 import Search from "@mui/icons-material/Search";
+import { StudentDetailsType } from "types/student";
 // import { StudentDetailsType } from "types/student";
 
 type AttendanceHeaderDataType = {
@@ -56,29 +57,62 @@ function ViewAttendance() {
     StudentAttendanceGlobalSchema[]
   >([]);
   const [searchInput, setSearchInput] = useState<string>("");
-  const [filterdata, setfilterdata] = useState<StudentAttendanceGlobalSchema[]>(
-    []
-  );
+  const [filterdata, setfilterdata] = useState<StudentDetailsType[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [attendanceHeaderData, setAttendanceHeaderData] =
     useState<AttendanceHeaderDataType | null>(null);
+  const [attendancedata, setattendancedata] = useState<
+    StudentAttendanceGlobalSchema[]
+  >([]);
 
   function handlesearch(): void {
     // setfilterdata(undefined)
     if (searchInput) {
+      setLoading(true)
+      // setfilterdata(undefined)
       console.log(searchInput);
       db.collection("STUDENTS")
         .where("admission_no", "==", searchInput)
         .get()
         .then((snapshot) => {
-          const studentdata = snapshot.docs[0].data() as any;
-          setfilterdata(studentdata);
-          console.log(filterdata);
-          // const data_id = data.id;
-          // console.log(data_id);
+          if (snapshot.size > 0) {
+            let tempArr: StudentDetailsType[] = [];
+            snapshot.forEach((student) => {
+              const resData = student.data() as StudentDetailsType;
+              tempArr.push(resData);
+              setfilterdata(tempArr);
+            });
+            db.collection("STUDENTS")
+              .doc(filterdata[0].id)
+              .collection("ATTENDANCE").where("attendanceDate","==",selectedDate)
+              .get()
+              .then((document) => {
+                if (document.size > 0) {
+                  let arrAttendance: StudentAttendanceGlobalSchema[] = [];
+                  document.forEach((doc) => {
+                    const data = doc.data() as StudentAttendanceGlobalSchema;
+                    arrAttendance.push(data);
+                    setattendancedata(arrAttendance);
+                  });
+                }
+              });
+            setLoading(false)
+            console.log(filterdata);
+            console.log(attendancedata);
+          } else {
+            setLoading(false);
+            enqueueSnackbar("No student with this student ID!", {
+              variant: "info",
+            });
+          }
+        })
+        .catch((e) => {
+          enqueueSnackbar("INVALID STUDENT ID", e);
+          setLoading(false);
         });
     } else {
+      setLoading(false)
       enqueueSnackbar("Please enter Student Id", { variant: "error" });
     }
   }
@@ -192,12 +226,76 @@ function ViewAttendance() {
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                   />
+                  
+                    <FormLabel>Select Date</FormLabel>
+                    <Input
+                      required
+                      placeholder="Placeholder"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                    />
+                    {/* <FormHelperText>This is a helper text.</FormHelperText> */}
+                  
                   <Button
                     startDecorator={<Search />}
                     variant="soft"
                     onClick={handlesearch}
                   />
                 </Stack>
+                {loading ? <LinearProgress /> : null}
+                <Table
+                  aria-label="table variants"
+                  variant="plain"
+                  color="neutral"
+                  stripe={"odd"}
+                >
+                  <thead>
+                    <tr>
+                      <th>STUDENT</th>
+                      <th>FATHER</th>
+                      <th>CONTACT</th>
+                      
+                      <th>STATUS</th>
+                      <th>COMMENT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filterdata &&
+                      filterdata.map((student, i) => {
+                        return (
+                          <tr key={student.student_name}>
+                            <td>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "10px",
+                                }}
+                              >
+                                <Avatar src={student.profil_url} />
+                                {student.student_name}
+                              </div>
+                            </td>
+                            <td>{student.father_name}</td>
+                            <td>{student.contact_number}</td>
+                            {attendancedata &&
+                              attendancedata.map((student, i) => {
+                                return (
+                                  
+                                <tr
+                                >
+                                <td>{student.attendanceStatus}</td>
+                                <td>{student.comment}</td>
+                                </tr>
+                                
+                                )
+                              })}
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </Table>
               </Paper>
             </Grid>
           </TabPanel>
